@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - Intelligence Artificielle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #0a0a0f;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 200, 255, 0.2) 0%, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .container {
+            background: rgba(10, 25, 47, 0.9);
+            border: 2px solid #00d4ff;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 50px rgba(0, 212, 255, 0.3),
+                inset 0 0 50px rgba(0, 212, 255, 0.1);
+            width: 100%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            animation: containerGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes containerGlow {
+            0% { box-shadow: 0 0 50px rgba(0, 212, 255, 0.3), inset 0 0 50px rgba(0, 212, 255, 0.1); }
+            100% { box-shadow: 0 0 80px rgba(0, 212, 255, 0.5), inset 0 0 50px rgba(0, 212, 255, 0.2); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 100, 200, 0.2) 100%);
+            color: #00d4ff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+            font-size: 2.2em;
+            font-weight: 900;
+            text-shadow: 0 0 20px #00d4ff;
+            letter-spacing: 3px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9em;
+            font-weight: 400;
+        }
+
+        .system-status {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 20px;
+            background: rgba(0, 50, 100, 0.3);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            font-size: 0.8em;
+        }
+
+        .status-item {
+            color: #00ff88;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .controls {
+            padding: 15px 20px;
+            background: rgba(0, 30, 60, 0.5);
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 100, 200, 0.2));
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(0, 10, 25, 0.3);
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.5);
+            border-radius: 4px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            animation: messageSlide 0.5s ease-out;
+            position: relative;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, rgba(0, 150, 255, 0.8), rgba(0, 100, 200, 0.8));
+            color: white;
+            align-self: flex-end;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .jarvis-message {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 100, 200, 0.15));
+            color: #00d4ff;
+            align-self: flex-start;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .jarvis-message::before {
+            content: '◉';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #00ff88;
+            font-size: 12px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .typing {
+            display: none;
+            align-self: flex-start;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 100, 200, 0.15));
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            position: relative;
+        }
+
+        .typing::before {
+            content: '◉';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #00ff88;
+            font-size: 12px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .typing-text {
+            color: #00d4ff;
+            font-size: 0.9em;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            gap: 4px;
+            margin-left: 5px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00d4ff;
+            animation: typingDots 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingDots {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+
+        .input-container {
+            padding: 20px;
+            background: rgba(0, 30, 60, 0.7);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            border-top: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(0, 50, 100, 0.3);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 25px;
+            font-size: 16px;
+            color: #00d4ff;
+            font-family: 'Orbitron', monospace;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-container input:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            background: rgba(0, 70, 140, 0.3);
+        }
+
+        .input-container input::placeholder {
+            color: rgba(0, 212, 255, 0.5);
+        }
+
+        .voice-btn, .send-btn {
+            background: linear-gradient(135deg, #00d4ff, #0080ff);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:hover, .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(0, 212, 255, 0.5);
+        }
+
+        .voice-btn:disabled, .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .voice-btn.listening {
+            background: linear-gradient(135deg, #ff4444, #ff0000);
+            animation: voicePulse 1s ease-in-out infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .stats {
+            font-size: 0.75em;
+            color: rgba(0, 212, 255, 0.7);
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 20, 40, 0.5);
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .time-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #00ff88;
+            font-size: 0.9em;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .command-suggestions {
+            display: none;
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 30, 60, 0.95);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            z-index: 100;
+        }
+
+        .suggestion {
+            color: #00d4ff;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 0.8em;
+            margin: 2px 0;
+            transition: background 0.3s ease;
+        }
+
+        .suggestion:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: 90vh;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg" id="matrixBg"></div>
+    
+    <div class="container">
+        <div class="time-display" id="timeDisplay"></div>
+        
+        <div class="header">
+            <h1>◉ J.A.R.V.I.S</h1>
+            <p>Just A Rather Very Intelligent System - Version 2.0</p>
+        </div>
+
+        <div class="system-status">
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span>SYSTÈME OPÉRATIONNEL</span>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span>IA ACTIVÉE</span>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span>VOCAL PRÊT</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="clearChat()">🗑 Effacer</button>
+            <button class="control-btn" onclick="showStats()">📊 Statistiques</button>
+            <button class="control-btn" onclick="showCommands()">⌘ Commandes</button>
+            <button class="control-btn" onclick="toggleTheme()">🎨 Thème</button>
+            <button class="control-btn" onclick="systemDiagnostic()">🔧 Diagnostic</button>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message jarvis-message">
+                Bonjour. Je suis J.A.R.V.I.S, votre assistant d'intelligence artificielle personnel. 
+                Je suis opérationnel et prêt à vous assister. Vous pouvez me parler en tapant ou en utilisant la commande vocale. 
+                Que puis-je faire pour vous aujourd'hui ?
+            </div>
+        </div>
+
+        <div class="typing" id="typing">
+            <span class="typing-text">J.A.R.V.I.S traite votre demande</span>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="command-suggestions" id="commandSuggestions">
+            <div class="suggestion" onclick="executeCommand('quelle heure est-il')">🕐 Quelle heure est-il ?</div>
+            <div class="suggestion" onclick="executeCommand('météo')">🌤 Météo du jour</div>
+            <div class="suggestion" onclick="executeCommand('calcule 25 + 17')">🧮 Calculer</div>
+            <div class="suggestion" onclick="executeCommand('raconte-moi une blague')">😄 Blague</div>
+        </div>
+
+        <div class="input-container">
+            <button class="voice-btn" onclick="toggleVoiceRecognition()" id="voiceBtn" title="Commande vocale">🎤</button>
+            <input type="text" id="userInput" placeholder="Posez votre question à J.A.R.V.I.S..." onkeypress="handleKeyPress(event)" onfocus="showSuggestions()" onblur="hideSuggestions()">
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn" title="Envoyer">➤</button>
+        </div>
+
+        <div class="stats" id="stats">SYSTÈME EN LIGNE | Messages: 0 | Commandes exécutées: 0 | Uptime: 00:00</div>
+    </div>
+
+    <script>
+        // J.A.R.V.I.S Knowledge Base - Plus sophistiqué
+        const jarvisKnowledge = {
+            greetings: {
+                patterns: ['bonjour', 'salut', 'hello', 'coucou', 'bonsoir', 'hey', 'jarvis'],
+                responses: [
+                    'Bonjour. Comment puis-je vous assister aujourd\'hui ?',
+                    'Salutations. J.A.R.V.I.S à votre service.',
+                    'Bonjour. Tous mes systèmes sont opérationnels. Que puis-je faire pour vous ?',
+                    'Salut. Je suis prêt à traiter vos demandes.'
+                ]
+            },
+            farewell: {
+                patterns: ['au revoir', 'bye', 'à bientôt', 'ciao', 'merci jarvis'],
+                responses: [
+                    'Au revoir. N\'hésitez pas à me solliciter si vous avez besoin d\'assistance.',
+                    'À bientôt. J.A.R.V.I.S reste en veille.',
+                    'Goodbye. Mes systèmes restent actifs pour votre prochaine requête.',
+                    'Au plaisir de vous servir à nouveau.'
+                ]
+            },
+            time: {
+                patterns: ['heure', 'temps', 'quelle heure'],
+                responses: () => {
+                    const now = new Date();
+                    return `Il est actuellement ${now.toLocaleTimeString('fr-FR')}. Date: ${now.toLocaleDateString('fr-FR')}.`;
+                }
+            },
+            weather: {
+                patterns: ['météo', 'temps qu\'il fait', 'weather'],
+                responses: [
+                    'Je ne peux pas accéder aux données météorologiques en temps réel actuellement. Consultez votre application météo locale.',
+                    'Système météorologique hors ligne. Recommandation: vérifier les conditions extérieures visuellement.',
+                    'Capteurs météo non disponibles. Consultez un service météorologique externe.'
+                ]
+            },
+            calculations: {
+                patterns: ['calcule', 'calcul', 'combien', 'résultat'],
+                responses: (message) => {
+                    const mathExpression = message.match(/calcule?\s+(.+)/i);
+                    if (mathExpression) {
+                        try {
+                            // Simple calculator - sécurisé
+                            const expr = mathExpression[1].replace(/[^0-9+\-*/().\s]/g, '');
+                            const result = Function('"use strict"; return (' + expr + ')')();
+                            return `Calcul effectué: ${expr} = ${result}`;
+                        } catch (e) {
+                            return 'Erreur de calcul. Vérifiez votre expression mathématique.';
+                        }
+                    }
+                    return 'Spécifiez l\'opération à calculer. Exemple: "calcule 15 + 25"';
+                }
+            },
+            jokes: {
+                patterns: ['blague', 'drôle', 'humour', 'rigole'],
+                responses: [
+                    'Pourquoi les plongeurs plongent-ils toujours en arrière ? Parce que sinon, ils tombent dans le bateau.',
+                    'Que dit un escargot quand il croise une limace ? "Regarde le nudiste !"',
+                    'Comment appelle-t-on un chat tombé dans un pot de peinture le jour de Noël ? Un chat-mallow.',
+                    'Mon humour est calibré sur des standards optimaux. Cette blague devrait déclencher 73.6% de satisfaction.'
+                ]
+            },
+            system: {
+                patterns: ['système', 'diagnostic', 'statut', 'performance'],
+                responses: [
+                    'Tous les systèmes fonctionnent dans les paramètres normaux.',
+                    'Diagnostic: ✅ Processeur optimal ✅ Mémoire disponible ✅ Connexions stables',
+                    'J.A.R.V.I.S Status: OPÉRATIONNEL. Toutes les fonctions sont actives.',
+                    'Système en parfait état de fonctionnement. Prêt pour toute mission.'
+                ]
+            }
+        };
+
+        // Mémoire avancée de J.A.R.V.I.S
+        let jarvisMemory = {
+            userName: null,
+            conversationHistory: [],
+            preferences: {},
+            commands: [],
+            startTime: Date.now(),
+            messagesCount: 0,
+            commandsExecuted: 0
+        };
+
+        // Recognition vocale
+        let recognition = null;
+        let isListening = false;
+
+        // Synthèse vocale
+        let synthesis = window.speechSynthesis;
+
+        // Initialisation de la reconnaissance vocale
+        function initVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'fr-FR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('userInput').value = transcript;
+                    sendMessage();
+                };
+
+                recognition.onerror = function(event) {
+                    console.log('Erreur reconnaissance vocale:', event.error);
+                    stopVoiceRecognition();
+                };
+
+                recognition.onend = function() {
+                    stopVoiceRecognition();
+                };
+            }
+        }
+
+        function toggleVoiceRecognition() {
+            if (!recognition) {
+                displayMessage('Reconnaissance vocale non supportée par votre navigateur.', 'jarvis');
+                return;
+            }
+
+            if (isListening) {
+                stopVoiceRecognition();
+            } else {
+                startVoiceRecognition();
+            }
+        }
+
+        function startVoiceRecognition() {
+            recognition.start();
+            isListening = true;
+            document.getElementById('voiceBtn').classList.add('listening');
+            displayMessage('🎤 J.A.R.V.I.S écoute...', 'jarvis');
+        }
+
+        function stopVoiceRecognition() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            document.getElementById('voiceBtn').classList.remove('listening');
+        }
+
+        // Synthèse vocale pour J.A.R.V.I.S
+        function speak(text) {
+            if (synthesis) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'fr-FR';
+                utterance.rate = 0.9;
+                utterance.pitch = 0.8;
+                synthesis.speak(utterance);
+            }
+        }
+
+        // Analyse avancée des messages
+        function analyzeMessage(message) {
+            const lowerMessage = message.toLowerCase();
+            jarvisMemory.conversationHistory.push({message, timestamp: Date.now()});
+
+            // Détection du nom utilisateur
+            if (lowerMessage.includes('je m\'appelle') || lowerMessage.includes('je suis')) {
+                const nameMatch = message.match(/(?:je m'appelle|je suis)\s+(\w+)/i);
+                if (nameMatch) {
+                    jarvisMemory.userName = nameMatch[1];
+                    return `Parfait, ${jarvisMemory.userName}. J'ai enregistré votre nom dans ma base de données. Comment puis-je vous assister ?`;
+                }
+            }
+
+            // Traitement des commandes spéciales
+            for (let category in jarvisKnowledge) {
+                for (let pattern of jarvisKnowledge[category].patterns) {
+                    if (lowerMessage.includes(pattern)) {
+                        jarvisMemory.commandsExecuted++;
+                        
+                        if (typeof jarvisKnowledge[category].responses === 'function') {
+                            return jarvisKnowledge[category].responses(message);
+                        } else {
+                            const responses = jarvisKnowledge[category].responses;
+                            let response = responses[Math.floor(Math.random() * responses.length)];
+                            
+                            // Personnalisation avec le nom
+                            if (jarvisMemory.userName && Math.random() > 0.6) {
+                                response += ` ${jarvisMemory.userName}.`;
+                            }
+                            
+                            return response;
+                        }
+                    }
+                }
+            }
+
+            // Réponses par défaut sophistiquées
+            const defaultResponses = [
+                'Je traite votre demande. Pouvez-vous être plus spécifique ?',
+                'Cette requête nécessite une clarification. Reformulez, s\'il vous plaît.',
+                'Je n\'ai pas suffisamment de données pour traiter cette demande efficacement.',
+                'Demande non reconnue. Consultez la liste des commandes disponibles.',
+                'J\'analyse votre requête. Précisez votre besoin pour une assistance optimale.'
+            ];
+
+            return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            displayMessage(message, 'user');
+            input.value = '';
+            
+            document.getElementById('sendBtn').disabled = true;
+            showTyping();
+            
+            setTimeout(() => {
+                hideTyping();
+                const response = analyzeMessage(message);
+                displayMessage(response, 'jarvis');
+                speak(response);
+                document.getElementById('sendBtn').disabled = false;
+                
+                jarvisMemory.messagesCount += 2;
+                updateStats();
+                input.focus();
+            }, 800 + Math.random() * 1200);
+        }
+
+        function displayMessage(message, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = message;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            document.getElementById('typing').style.display = 'block';
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            document.getElementById('typing').style.display = 'none';
+        }
+
+        function executeCommand(command) {
+            document.getElementById('userInput').value = command;
+            sendMessage();
+            hideSuggestions();
+        }
+
+        function showSuggestions() {
+            setTimeout(() => {
+                document.getElementById('commandSuggestions').style.display = 'block';
+            }, 200);
+        }
+
+        function hideSuggestions() {
+            setTimeout(() => {
+                document.getElementById('commandSuggestions').style.display = 'none';
+            }, 200);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function clearChat() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = `
+                <div class="message jarvis-message">
+                    Historique effacé. J.A.R.V.I.S prêt pour de nouvelles interactions.
+                </div>
+            `;
+            jarvisMemory.messagesCount = 0;
+            jarvisMemory.conversationHistory = [];
+            updateStats();
+        }
+
+        function showStats() {
+            const uptime = Math.floor((Date.now() - jarvisMemory.startTime) / 1000);
+            const hours = Math.floor(uptime / 3600);
+            const minutes = Math.floor((uptime % 3600) / 60);
+            const seconds = uptime % 60;
+            
+            displayMessage(`📊 RAPPORT SYSTÈME J.A.R.V.I.S:
+• Messages traités: ${jarvisMemory.messagesCount}
+• Commandes exécutées: ${jarvisMemory.commandsExecuted}
+• Temps de fonctionnement
